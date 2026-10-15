@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoltWise - Automated Verification & Test Suite</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --pass: #10b981;
+      --fail: #ef4444;
+      --amber: #f59e0b;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #38bdf8;
+    }
+    .badge-status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--pass);
+      border: 1px solid var(--pass);
+    }
+    .summary-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.5rem;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .stat-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 0.25rem;
+    }
+    .test-list {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .test-item {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .test-item:last-child { border-bottom: none; }
+    .test-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .test-badge {
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-pass {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--pass);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .badge-fail {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--fail);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .btn {
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: none;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>⚡ VoltWise Test Suite</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Automated Verification of Mathematical Conservation Laws & Physical Grid Constraints</p>
+      </div>
+      <div>
+        <a href="index.html" class="btn btn-secondary">← Back to Dashboard</a>
+        <button class="btn btn-primary" onclick="window.location.reload()">Re-run Tests</button>
+      </div>
+    </header>
+
+    <div class="summary-card" id="summaryCard">
+      <div>
+        <div class="stat-label">Total Tests</div>
+        <div class="stat-val" id="totalCount">-</div>
+      </div>
+      <div>
+        <div class="stat-label">Passed</div>
+        <div class="stat-val" style="color: var(--pass);" id="passedCount">-</div>
+      </div>
+      <div>
+        <div class="stat-label">Failed</div>
+        <div class="stat-val" style="color: var(--fail);" id="failedCount">-</div>
+      </div>
+      <div>
+        <div class="stat-label">Status</div>
+        <div class="stat-val" style="color: var(--pass);" id="overallStatus">Verifying...</div>
+      </div>
+    </div>
+
+    <div class="test-list" id="testList">
+      <!-- Populated dynamically by tests.js -->
+    </div>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="tests.js"></script>
+  <script>
+    // Render browser test results
+    if (window.VoltWiseTestResults) {
+      const data = window.VoltWiseTestResults;
+      document.getElementById('totalCount').textContent = data.totalCount;
+      document.getElementById('passedCount').textContent = data.passedCount;
+      document.getElementById('failedCount').textContent = data.failedCount;
+      
+      const statusEl = document.getElementById('overallStatus');
+      if (data.failedCount === 0) {
+        statusEl.textContent = '100% PASSED';
+        statusEl.style.color = 'var(--pass)';
+      } else {
+        statusEl.textContent = `${data.failedCount} FAILURES`;
+        statusEl.style.color = 'var(--fail)';
+      }
+
+      const listEl = document.getElementById('testList');
+      listEl.innerHTML = '';
+      data.results.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'test-item';
+        item.innerHTML = `
+          <div class="test-name">${t.name} ${t.error ? `<div style="color: var(--fail); font-size: 0.85rem; margin-top: 0.25rem;">${t.error}</div>` : ''}</div>
+          <span class="test-badge ${t.passed ? 'badge-pass' : 'badge-fail'}">${t.passed ? 'PASS' : 'FAIL'}</span>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+  </script>
+</body>
+</html>

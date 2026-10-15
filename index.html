@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoltWise ⚡ Intelligent EV Fleet Charging Optimisation Platform</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js CDN with graceful fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">VoltWise</div>
+          <div class="brand-tagline">EV Fleet Energy Optimiser</div>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li>
+          <a href="#dashboard" class="nav-item active" data-view="view-dashboard">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="#heatmap" class="nav-item" data-view="view-heatmap">
+            <span class="nav-icon">🗺️</span>
+            <span>Charging Heatmap</span>
+          </a>
+        </li>
+        <li>
+          <a href="#fleet" class="nav-item" data-view="view-fleet">
+            <span class="nav-icon">🚐</span>
+            <span>Fleet Manager</span>
+          </a>
+        </li>
+        <li>
+          <a href="#chargers" class="nav-item" data-view="view-chargers">
+            <span class="nav-icon">🔌</span>
+            <span>Chargers & Bays</span>
+          </a>
+        </li>
+        <li>
+          <a href="#settings" class="nav-item" data-view="view-settings">
+            <span class="nav-icon">⚡</span>
+            <span>Grid & Tariffs</span>
+          </a>
+        </li>
+        <li>
+          <a href="#optimizer" class="nav-item" data-view="view-optimizer">
+            <span class="nav-icon">⚙️</span>
+            <span>Schedule & Audit</span>
+          </a>
+        </li>
+        <li>
+          <a href="#whatif" class="nav-item" data-view="view-whatif">
+            <span class="nav-icon">🧪</span>
+            <span>What-If Lab</span>
+          </a>
+        </li>
+        <li>
+          <a href="#reports" class="nav-item" data-view="view-reports">
+            <span class="nav-icon">📑</span>
+            <span>Reports & SDG</span>
+          </a>
+        </li>
+        <li>
+          <a href="#about" class="nav-item" data-view="view-about">
+            <span class="nav-icon">ℹ️</span>
+            <span>About & Defense</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div style="font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">Sustainable Mobility</div>
+        <div class="sdg-badges">
+          <span class="sdg-pill sdg-7">SDG 7 Clean Energy</span>
+          <span class="sdg-pill sdg-11">SDG 11 Cities</span>
+        </div>
+        <div style="margin-top: 0.85rem; font-size: 0.75rem; color: #64748b;">
+          Deterministic Heuristic Engine<br>
+          <a href="tests.html" style="color: #38bdf8; text-decoration: underline;">Run 24 Verification Tests →</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+      <!-- Top Application Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <div id="liveBadge" class="live-badge empty-state">
+            <span>○</span> EMPTY DEPOT — AWAITING USER INPUT
+          </div>
+        </div>
+
+        <div class="top-bar-actions">
+          <button class="btn btn-primary btn-sm" onclick="VoltWiseApp.openAddVehicleModal()">
+            + Add Vehicle / Cart
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.openAddChargerModal()">
+            + Add Charger
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.clearAllData()" title="Clear all vehicles to reset to clean empty state">
+            🗑️ Clear Depot
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.loadStarterTemplate()" title="Load optional 8-vehicle starter fleet">
+            📥 Load Template
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="VoltWiseApp.recalculateAll()">
+            ⚡ Recalculate
+          </button>
+        </div>
+      </header>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 1: EXECUTIVE DASHBOARD                                        -->
+      <!-- ================================================================== -->
+      <section class="page-view active" id="view-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Executive Energy Dashboard</h1>
+            <p class="page-subtitle">Real-time fleet charging optimization, demand curves, and baseline verification</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.downloadScheduleCsv()">Export CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.printReport()">Print Report</button>
+          </div>
+        </div>
+
+        <!-- EV Fleet Command Centre Live Header Ribbon -->
+        <div class="command-ribbon">
+          <div class="command-status-item">
+            <span class="command-status-label">Depot Fleet Connection</span>
+            <span class="command-status-val" id="ribbonActiveFleet">0 EVs Connected</span>
+          </div>
+          <div class="command-status-item">
+            <span class="command-status-label">Departure Readiness</span>
+            <span class="command-status-val" id="ribbonReadiness" style="color: var(--success);">--% Targets Met</span>
+          </div>
+          <div class="command-status-item">
+            <span class="command-status-label">Site Grid Peak Loading</span>
+            <span class="command-status-val" id="ribbonSiteLoad">0.0 / 60.0 kW (0%)</span>
+          </div>
+          <div class="command-status-item">
+            <span class="command-status-label">Avoided Peak Grid Energy</span>
+            <span class="command-status-val" id="ribbonAvoidedPeak" style="color: #38bdf8;">0.0 kWh Shifted</span>
+          </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Active Fleet Size</div>
+            <div class="kpi-value" id="kpiFleetSize">0 Vehicles</div>
+            <div class="kpi-subtext">Commercial Depot</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Required Battery Energy</div>
+            <div class="kpi-value" id="kpiReqEnergy">0.0 kWh</div>
+            <div class="kpi-subtext">Target SOC Deficit</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Grid Energy Consumed</div>
+            <div class="kpi-value" id="kpiGridEnergy">0.0 kWh</div>
+            <div class="kpi-subtext">At 90% AC/DC Efficiency</div>
+          </div>
+
+          <div class="kpi-card kpi-success">
+            <div class="kpi-label">Optimised Electricity Cost</div>
+            <div class="kpi-value" id="kpiCost" style="color: var(--success);">₹0.00</div>
+            <div class="kpi-subtext" id="kpiSavings">Awaiting fleet data</div>
+          </div>
+
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-label">Peak Site Demand</div>
+            <div class="kpi-value" id="kpiPeakDemand">0.0 kW</div>
+            <div class="kpi-subtext">Site Grid Cap: 60.0 kW</div>
+          </div>
+
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-label">On-Time Completion</div>
+            <div class="kpi-value" id="kpiCompleted">--</div>
+            <div class="kpi-subtext">Departure Deadlines Met</div>
+          </div>
+        </div>
+
+        <!-- Empty State Hero when Fleet is Empty -->
+        <div class="empty-state-card" id="dashboardEmptyState">
+          <div class="empty-state-icon">🔋</div>
+          <h2 class="empty-state-title">No Vehicles in Depot</h2>
+          <p class="empty-state-desc">
+            Your fleet depot is currently empty. Add your commercial electric vehicles or delivery carts using the form to generate a cost-optimized, constraint-abiding charging plan.
+          </p>
+          <div class="empty-state-actions">
+            <button class="btn btn-primary" onclick="VoltWiseApp.openAddVehicleModal()">+ Add Your First Vehicle</button>
+            <button class="btn btn-secondary" onclick="VoltWiseApp.loadStarterTemplate()">+ Load Starter Template (8 Carts)</button>
+          </div>
+        </div>
+
+        <!-- Dashboard Content (Visible when vehicles exist) -->
+        <div id="dashboardContent" style="display: none;">
+          <!-- Real-Time Style Charging Timeline Simulator -->
+          <div class="timeline-card">
+            <div class="card-title">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>⏱️ Real-Time Style Charging Timeline Simulator</span>
+                <span class="badge-tag badge-normal">Simulated 15-Min Scrubber</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.stepTimeline(-1)">⏮ -15m</button>
+                <button class="btn btn-primary btn-sm" id="timelinePlayBtn" onclick="VoltWiseApp.togglePlayTimeline()">▶ Play Simulation</button>
+                <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.stepTimeline(1)">+15m ⏭</button>
+                <select class="form-select form-input" style="padding: 0.3rem 0.5rem; font-size: 0.8rem;" onchange="VoltWiseApp.setTimelineSpeed(parseInt(this.value, 10))">
+                  <option value="1200">0.5x Speed</option>
+                  <option value="800" selected>1.0x Speed</option>
+                  <option value="400">2.0x Speed</option>
+                </select>
+              </div>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+              Step through the 12-hour overnight horizon (18:00 to 06:00). Observe live bay power draw, EV battery SOC ramp-up, and tariff-based switching.
+            </p>
+
+            <div class="timeline-player-bar">
+              <div class="timeline-clock-display">
+                <span class="timeline-time-large" id="timelineClockDisplay">18:00</span>
+                <span class="badge-tag badge-normal" id="timelineSlotLabel">Slot 1 of 48</span>
+              </div>
+
+              <input type="range" id="timelineScrubber" min="0" max="47" value="0" class="timeline-scrubber" oninput="VoltWiseApp.setTimelineSlot(this.value)">
+
+              <div id="timelineTariffDisplay" class="badge-tag badge-high" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">
+                Tariff: <strong>₹9.50/kWh</strong> (🔴 Peak)
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem;">
+                <span style="font-weight: 700; color: var(--text-muted);">Depot Grid Connection Load at this Slot:</span>
+                <span id="timelineLoadText" style="font-weight: 800;">0.0 kW / 60.0 kW (0% grid cap)</span>
+              </div>
+              <div class="depot-load-bar">
+                <div id="timelineLoadBar" class="depot-load-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Live Charger Bays Status Grid -->
+            <div class="bays-grid" id="timelineBaysGrid">
+              <!-- Rendered dynamically by renderTimeline() in app.js -->
+            </div>
+          </div>
+
+          <!-- Heatmap Preview Card -->
+          <div class="heatmap-card">
+            <div class="card-title">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>🗺️ Vehicle & Cart Charging Heatmap</span>
+                <span class="badge-tag badge-normal">15-Min Slots</span>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.switchView('view-heatmap')">Expand Full Heatmap →</button>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Visual representation of power allocation (kW) across the 12-hour overnight window (18:00 to 06:00). Hover any cell to view vehicle, power, energy added, and cost.
+            </p>
+            <div class="heatmap-scroll-container">
+              <table class="heatmap-table" id="heatmapTable"></table>
+            </div>
+            <div class="heatmap-legend">
+              <span style="font-weight: 700;">Intensity Legend:</span>
+              <div class="legend-item"><span class="legend-color cell-idle"></span> 0 kW (Idle)</div>
+              <div class="legend-item"><span class="legend-color cell-low"></span> 1–7.4 kW (Low)</div>
+              <div class="legend-item"><span class="legend-color cell-medium"></span> 7.5–15 kW (Medium)</div>
+              <div class="legend-item"><span class="legend-color cell-high"></span> 15–22 kW (High Fast)</div>
+              <div class="legend-item"><span class="legend-color cell-extreme"></span> &gt;22 kW (Ultra)</div>
+              <div class="legend-item"><span>✓</span> Target SOC Met</div>
+              <div class="legend-item"><span style="border-right: 3px solid #ef4444; width: 6px; height: 14px; display: inline-block;"></span> Departure Deadline</div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="charts-grid">
+            <div class="card">
+              <div class="card-title">
+                <span>Site Power Demand Profile (kW)</span>
+                <small style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Uncoordinated Baseline vs VoltWise</small>
+              </div>
+              <div class="chart-container">
+                <canvas id="demandChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">
+                <span>Time-of-Day Electricity Tariff Structure (₹/kWh)</span>
+                <small style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">18:00 to 06:00 Horizon</small>
+              </div>
+              <div class="chart-container">
+                <canvas id="tariffChartCanvas"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operational Alerts Card -->
+          <div class="card">
+            <div class="card-title">
+              <span>Operational Health & Grid Capacity Alerts</span>
+              <small style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Dynamically evaluated against physical depot limits</small>
+            </div>
+            <div class="alerts-list" id="alertsList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 2: DEDICATED CHARGING HEATMAP VIEW                             -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-heatmap">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Interactive Charging Heatmap 🗺️</h1>
+            <p class="page-subtitle">Inspect vehicle dwell times, charger bay allocations, power throttling, and tariff avoidance</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.downloadScheduleCsv()">Download Schedule CSV</button>
+          </div>
+        </div>
+
+        <div class="heatmap-card">
+          <!-- Heatmap Toolbar & Filters -->
+          <div class="heatmap-toolbar">
+            <div class="heatmap-filters">
+              <div class="filter-group">
+                <label class="filter-label" for="heatmapModeSelect">Grouping:</label>
+                <select id="heatmapModeSelect" class="form-select form-input" style="padding: 0.4rem 0.65rem;">
+                  <option value="vehicles">Group by Vehicles / Carts</option>
+                  <option value="chargers">Group by Charger Bays</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="heatmapVehicleFilter">Vehicle:</label>
+                <select id="heatmapVehicleFilter" class="form-select form-input" style="padding: 0.4rem 0.65rem;">
+                  <option value="all">All Vehicles</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="heatmapChargerFilter">Charger:</label>
+                <select id="heatmapChargerFilter" class="form-select form-input" style="padding: 0.4rem 0.65rem;">
+                  <option value="all">All Chargers</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="heatmapActivityFilter">State:</label>
+                <select id="heatmapActivityFilter" class="form-select form-input" style="padding: 0.4rem 0.65rem;">
+                  <option value="all">All Slots</option>
+                  <option value="charging">Active Charging Only</option>
+                  <option value="idle">Idle Only</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="heatmapTimeWindow">Window:</label>
+                <select id="heatmapTimeWindow" class="form-select form-input" style="padding: 0.4rem 0.65rem;">
+                  <option value="all">Entire 12 Hours (18:00 - 06:00)</option>
+                  <option value="peak">Evening Peak (18:00 - 21:00)</option>
+                  <option value="offpeak">Super Off-Peak Valley (21:00 - 04:00)</option>
+                  <option value="morning">Morning Shoulder (04:00 - 06:00)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state for heatmap -->
+          <div class="empty-state-card" id="heatmapEmptyState" style="display: none;">
+            <div class="empty-state-icon">🗺️</div>
+            <h2 class="empty-state-title">No Heatmap Data</h2>
+            <p class="empty-state-desc">Add vehicles to the fleet to visualize charging intervals and power allocations.</p>
+            <button class="btn btn-primary" onclick="VoltWiseApp.openAddVehicleModal()">+ Add Vehicle</button>
+          </div>
+
+          <!-- Heatmap Table Container -->
+          <div id="heatmapWrapper">
+            <div class="heatmap-scroll-container">
+              <table class="heatmap-table" id="heatmapTableFull"></table>
+            </div>
+            <div class="heatmap-legend">
+              <span style="font-weight: 700;">Intensity Legend:</span>
+              <div class="legend-item"><span class="legend-color cell-idle"></span> 0 kW (Idle)</div>
+              <div class="legend-item"><span class="legend-color cell-low"></span> 1–7.4 kW (Low)</div>
+              <div class="legend-item"><span class="legend-color cell-medium"></span> 7.5–15 kW (Medium)</div>
+              <div class="legend-item"><span class="legend-color cell-high"></span> 15–22 kW (High Fast)</div>
+              <div class="legend-item"><span class="legend-color cell-extreme"></span> &gt;22 kW (Ultra)</div>
+              <div class="legend-item"><span>✓</span> Target Reached</div>
+              <div class="legend-item"><span style="border-right: 3px solid #ef4444; width: 6px; height: 14px; display: inline-block;"></span> Departure Deadline</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 3: FLEET & ASSET MANAGER                                      -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-fleet">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Fleet & Cart Assets Manager</h1>
+            <p class="page-subtitle">Configure battery capacities, current & target SOC levels, power limits, and departure times</p>
+          </div>
+          <div style="display: flex; gap: 0.65rem;">
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.clearAllData()">Clear All</button>
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.loadStarterTemplate()">Load Template</button>
+            <button class="btn btn-primary btn-sm" onclick="VoltWiseApp.openAddVehicleModal()">+ Add Vehicle / Cart</button>
+          </div>
+        </div>
+
+        <!-- Empty State for Fleet -->
+        <div class="empty-state-card" id="fleetEmptyState" style="display: none;">
+          <div class="empty-state-icon">🚐</div>
+          <h2 class="empty-state-title">No Fleet Vehicles Registered</h2>
+          <p class="empty-state-desc">Enter your electric vehicles or carts to manage their battery targets and view live scheduling status.</p>
+          <div class="empty-state-actions">
+            <button class="btn btn-primary" onclick="VoltWiseApp.openAddVehicleModal()">+ Add First Vehicle</button>
+            <button class="btn btn-secondary" onclick="VoltWiseApp.loadStarterTemplate()">+ Load Template</button>
+          </div>
+        </div>
+
+        <div class="card" id="fleetTableCard">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Vehicle ID</th>
+                  <th>Display Name</th>
+                  <th>Capacity</th>
+                  <th>Current / Target SOC</th>
+                  <th>Required Energy</th>
+                  <th>Max Power</th>
+                  <th>Departure Deadline</th>
+                  <th>Priority</th>
+                  <th>Deadline Risk</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="fleetTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 4: INFRASTRUCTURE & CHARGERS MANAGER                          -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-chargers">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Depot Chargers & Hardware Bays</h1>
+            <p class="page-subtitle">Manage charging stations, bay power ratings, and simulate maintenance outages</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="VoltWiseApp.openAddChargerModal()">+ Add Charger Bay</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Active Charging Infrastructure</div>
+          <div id="chargersListContainer"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 5: SITE & TARIFF SETTINGS                                     -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-settings">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Depot Grid & Electricity Tariffs</h1>
+            <p class="page-subtitle">Customize site power connection limits, conversion efficiency, and Time-of-Day electricity pricing</p>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <!-- Site Configuration Card -->
+          <div class="card">
+            <div class="card-title">Site Power & Physics Parameters</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="settingSitePower">Depot Site Power Limit (kW)</label>
+                <input type="number" id="settingSitePower" class="form-input" value="60" min="10" max="300" step="5">
+                <span class="form-helper">Max power connection from transformer</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="settingEfficiency">Charging Efficiency (%)</label>
+                <input type="number" id="settingEfficiency" class="form-input" value="90" min="70" max="100" step="1">
+                <span class="form-helper">AC-to-DC battery conversion efficiency</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="settingEmissions">Grid Emission Factor (kg CO₂e/kWh)</label>
+                <input type="number" id="settingEmissions" class="form-input" value="0.72" min="0" max="2.0" step="0.05">
+                <span class="form-helper">Simulated grid carbon intensity</span>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top: 1.25rem;" onclick="VoltWiseApp.updateSiteSettings()">
+              Save Site Parameters
+            </button>
+          </div>
+
+          <!-- Tariff Tier Editor Card -->
+          <div class="card">
+            <div class="card-title">Time-of-Day Tariff Structure (₹/kWh)</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="tariffPeakInput">Evening Peak Rate (18:00 - 21:00)</label>
+                <input type="number" id="tariffPeakInput" class="form-input" value="9.50" min="1" max="25" step="0.25">
+                <span class="form-helper">Grid congestion peak window</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="tariffShoulderInput">Shoulder Rate (21:00 - 23:00)</label>
+                <input type="number" id="tariffShoulderInput" class="form-input" value="6.20" min="1" max="25" step="0.25">
+                <span class="form-helper">Evening transition window</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="tariffOffPeakInput">Super Off-Peak Rate (23:00 - 04:00)</label>
+                <input type="number" id="tariffOffPeakInput" class="form-input" value="3.60" min="1" max="25" step="0.25">
+                <span class="form-helper">Overnight low-demand valley</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="tariffMorningInput">Morning Shoulder Rate (04:00 - 06:00)</label>
+                <input type="number" id="tariffMorningInput" class="form-input" value="6.50" min="1" max="25" step="0.25">
+                <span class="form-helper">Pre-departure grid ramp</span>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top: 1.25rem;" onclick="VoltWiseApp.applyCustomTariffs()">
+              Apply Custom Tariffs
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 6: CHARGING OPTIMISER & AUDIT                                 -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-optimizer">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Deterministic Schedule & Constraint Audit</h1>
+            <p class="page-subtitle">Discrete-time 15-minute slot allocation ensuring 100% constraint adherence</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <select id="scheduleFilter" class="form-select form-input" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">
+              <option value="all">All Scheduled Slots</option>
+            </select>
+            <div id="scheduleAuditBadge"></div>
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.downloadScheduleCsv()">Export CSV</button>
+          </div>
+        </div>
+
+        <!-- Empty State for Schedule -->
+        <div class="empty-state-card" id="scheduleEmptyState" style="display: none;">
+          <div class="empty-state-icon">⚙️</div>
+          <h2 class="empty-state-title">No Active Schedule</h2>
+          <p class="empty-state-desc">Add vehicles to the depot fleet to calculate an optimized schedule.</p>
+          <button class="btn btn-primary" onclick="VoltWiseApp.openAddVehicleModal()">+ Add Vehicle</button>
+        </div>
+
+        <div class="card" id="scheduleTableCard">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Slot #</th>
+                  <th>Time Interval</th>
+                  <th>Vehicle</th>
+                  <th>Assigned Charger</th>
+                  <th>Power (kW)</th>
+                  <th>Grid Energy</th>
+                  <th>Battery Delivered</th>
+                  <th>Tariff</th>
+                  <th>Slot Cost</th>
+                  <th>Decision Rationale</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 7: WHAT-IF LAB & EMERGENCY SIMULATOR                          -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-whatif">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">What-If Lab & Emergency Simulator 🧪</h1>
+            <p class="page-subtitle">Stress-test depot resilience against severe grid curtailments, hardware outages, tariff spikes, and rush deployments</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.resetWhatIf()">Reset to Live State</button>
+            <button class="btn btn-primary btn-sm" onclick="VoltWiseApp.recalculateAll()">Recalculate</button>
+          </div>
+        </div>
+
+        <!-- Emergency Disruption Presets -->
+        <div class="card">
+          <div class="card-title">
+            <span>Operational Disruption Presets</span>
+            <small style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Simulates real-world dynamic disturbances on live schedule</small>
+          </div>
+
+          <div class="emergency-grid">
+            <button class="emergency-btn" onclick="VoltWiseApp.triggerEmergency('curtailment')">
+              <div class="emergency-title">⚡ 50% Grid Curtailment</div>
+              <div class="emergency-desc">Substation derates depot connection to 30 kW. Tests if optimiser can throttle power without missing deadlines.</div>
+            </button>
+
+            <button class="emergency-btn" onclick="VoltWiseApp.triggerEmergency('outage')">
+              <div class="emergency-title">🔧 Bay 2 Hardware Outage</div>
+              <div class="emergency-desc">Charger 2 inverter trips offline. Evaluates bottleneck queueing and redistributes vehicles to remaining bays.</div>
+            </button>
+
+            <button class="emergency-btn" onclick="VoltWiseApp.triggerEmergency('rush')">
+              <div class="emergency-title">⏰ Early Morning Rush (-2 Hours)</div>
+              <div class="emergency-desc">Delivery schedule pulled forward by 2 hours. Tests urgent deadline priority overrides and off-peak tradeoffs.</div>
+            </button>
+
+            <button class="emergency-btn" onclick="VoltWiseApp.triggerEmergency('spike')">
+              <div class="emergency-title">📈 Grid Crisis Tariff Spike</div>
+              <div class="emergency-desc">Peak evening electricity spikes to ₹16.00/kWh. Tests aggressive cost minimization and load shifting.</div>
+            </button>
+
+            <button class="emergency-btn" onclick="VoltWiseApp.triggerEmergency('surge')">
+              <div class="emergency-title">🚐 Unplanned Fleet Surge (+EV)</div>
+              <div class="emergency-desc">Unscheduled delivery van arrives at depot with 20% SOC. Tests opportunistic capacity absorption.</div>
+            </button>
+          </div>
+
+          <!-- Dynamic Impact Delta Container -->
+          <div id="emergencyDeltaContainer"></div>
+        </div>
+
+        <!-- Interactive Custom Scenario Form -->
+        <div class="card">
+          <div class="card-title">Custom What-If Parameter Tuning</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="whatifSitePower">Temporary Grid Limit (kW)</label>
+              <input type="number" id="whatifSitePower" class="form-input" value="60" min="15" max="200" step="5">
+              <span class="form-helper">Simulate restricted transformer connection</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="whatifTariffMultiplier">Tariff Multiplier (x)</label>
+              <input type="number" id="whatifTariffMultiplier" class="form-input" value="1.0" min="0.5" max="3.0" step="0.1">
+              <span class="form-helper">Simulate power price inflation or volatility</span>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" style="margin-top: 1rem;" onclick="VoltWiseApp.applyWhatIfCustom()">Run Custom Scenario</button>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 7: REPORTS & SDG IMPACT                                       -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-reports">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Reports, SDG Impact & Data Management</h1>
+            <p class="page-subtitle">Comparative baseline audits, SDG alignment, CSV downloads, and JSON backup/restore</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.exportDataJson()">Backup JSON</button>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importJsonInput').click()">Restore JSON</button>
+            <input type="file" id="importJsonInput" accept=".json" style="display: none;" onchange="VoltWiseApp.importDataJson(this.files[0])">
+            <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.downloadComparisonCsv()">Export Audit CSV</button>
+            <button class="btn btn-primary btn-sm" onclick="VoltWiseApp.printReport()">Print / Save PDF</button>
+          </div>
+        </div>
+
+        <!-- SDG Quantitative Impact Dashboard -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-title">Sustainable Development Goal (SDG) Quantitative Impact</div>
+          <div class="sdg-highlight-grid">
+            <div class="sdg-highlight-item" style="border-top: 4px solid #10b981;">
+              <div class="sdg-highlight-label">Avoided Peak Grid Energy (SDG 7)</div>
+              <div class="sdg-highlight-val" id="sdgAvoidedPeakEnergy" style="color: #10b981;">0.0 kWh</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Energy shifted away from evening peak grid congestion</div>
+            </div>
+
+            <div class="sdg-highlight-item" style="border-top: 4px solid #f59e0b;">
+              <div class="sdg-highlight-label">Site Peak Shaved (SDG 7)</div>
+              <div class="sdg-highlight-val" id="sdgPeakShaved" style="color: #d97706;">0.0 kW (0%)</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Depot transformer stress avoided without hardware upgrades</div>
+            </div>
+
+            <div class="sdg-highlight-item" style="border-top: 4px solid #0284c7;">
+              <div class="sdg-highlight-label">Clean Electric Transit Powered (SDG 11)</div>
+              <div class="sdg-highlight-val" id="sdgCleanKm" style="color: #0284c7;">0 km</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Zero-tailpipe transit distance delivered for city delivery carts</div>
+            </div>
+
+            <div class="sdg-highlight-item" style="border-top: 4px solid #8b5cf6;">
+              <div class="sdg-highlight-label">Grid Carbon Delta (SDG 13)</div>
+              <div class="sdg-highlight-val" id="sdgCarbonDelta" style="color: #8b5cf6;">0.0 kg CO₂e</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Calculated using grid emission factor (0.72 kg/kWh)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Side-by-Side Baseline Comparison Audit</div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Performance Metric</th>
+                  <th>Uncoordinated Baseline</th>
+                  <th>VoltWise Optimised</th>
+                  <th>Operational Impact</th>
+                </tr>
+              </thead>
+              <tbody id="reportsComparisonTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card" style="border-top: 4px solid #d97706;">
+            <div class="card-title" style="color: #d97706;">SDG 7 — Affordable and Clean Energy</div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+              By shifting flexible fleet charging into overnight low-tariff periods, VoltWise shaves peak demand and prevents unnecessary transformer overload. This doubles the utilization efficiency of existing electrical distribution assets without requiring carbon-heavy substation expansions.
+            </p>
+          </div>
+
+          <div class="card" style="border-top: 4px solid #ea580c;">
+            <div class="card-title" style="color: #ea580c;">SDG 11 — Sustainable Cities and Communities</div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+              Electrifying municipal and logistics fleets is vital for urban air quality. VoltWise ensures commercial delivery carts, shuttle vans, and utility vehicles reliably reach their required state of charge by morning departure deadlines, supporting dependable zero-emission city transit.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 8: ABOUT & DEFENSE GUIDE                                      -->
+      <!-- ================================================================== -->
+      <section class="page-view" id="view-about">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">About VoltWise & Judge Defense Guide</h1>
+            <p class="page-subtitle">Algorithmic architecture, mathematical formulations, and judge questions cheat sheet</p>
+          </div>
+          <a href="tests.html" class="btn btn-secondary btn-sm">Open 24 Verification Self-Tests →</a>
+        </div>
+
+        <div class="card">
+          <div class="card-title">1. Mathematical & Engineering Equations</div>
+          <div style="background: var(--bg-subtle); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.85rem; line-height: 1.8;">
+            • Battery Energy Required: E_batt = BatteryCapacity × max(0, TargetSOC - CurrentSOC) / 100<br>
+            • Grid Energy Consumed: E_grid = E_batt / η  (where efficiency η = 0.90)<br>
+            • Time Slot Energy (15 min = 0.25 h): E_slot = Power_kW × 0.25 h<br>
+            • Total Electricity Cost = ∑ (E_slot,grid × Tariff_t)<br>
+            • Urgency Slack: Slack(t) = SlotsRemaining(t) - SlotsNeededAtFullPower
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">2. Judge Defense Bank & Frequently Asked Questions</div>
+          <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem;">
+            <div>
+              <strong>Q: Why not use Machine Learning or an AI neural network for the scheduler?</strong><br>
+              <span style="color: var(--text-muted);">A: Mission-critical electrical grid engineering demands deterministic guarantees. Neural networks can hallucinate or produce probabilistic constraint violations that trip physical circuit breakers. Our deterministic greedy heuristic provides 100% reproducible results, runs in milliseconds offline in the browser, and is fully explainable to depot engineers.</span>
+            </div>
+            <div>
+              <strong>Q: How do you prevent two vehicles from using the same charger?</strong><br>
+              <span style="color: var(--text-muted);">A: In each time slot, chargers are tracked in a set and assigned exclusively. Our independent constraint validator scans all 48 slots and asserts charger exclusivity, vehicle exclusivity, and site limits.</span>
+            </div>
+            <div>
+              <strong>Q: How is the baseline defined?</strong><br>
+              <span style="color: var(--text-muted);">A: Our baseline represents uncoordinated ASAP (As Soon As Possible) charging—the default real-world approach where vehicles plug in and pull maximum power immediately on arrival, ignoring tariffs.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 1: ADD / EDIT VEHICLE                                        -->
+  <!-- ================================================================== -->
+  <div class="modal-overlay" id="vehicleModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Add Electric Vehicle / Cart</div>
+        <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.closeModal()">✕</button>
+      </div>
+      <form id="vehicleForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="vId">Vehicle ID</label>
+              <input type="text" id="vId" class="form-input" required placeholder="e.g. EV-01">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vName">Vehicle Name / Cart</label>
+              <input type="text" id="vName" class="form-input" required placeholder="e.g. Urban Delivery Cart A">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vCapacity">Battery Capacity (kWh)</label>
+              <input type="number" id="vCapacity" class="form-input" required min="10" max="250" step="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vCurrentSoc">Current SOC (%)</label>
+              <input type="number" id="vCurrentSoc" class="form-input" required min="0" max="100" step="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vTargetSoc">Target SOC (%)</label>
+              <input type="number" id="vTargetSoc" class="form-input" required min="0" max="100" step="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vMaxPower">Max Charging Power (kW)</label>
+              <input type="number" id="vMaxPower" class="form-input" required min="3" max="150" step="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vDepartureTime">Departure Deadline (HH:MM)</label>
+              <input type="text" id="vDepartureTime" class="form-input" required pattern="[0-2][0-9]:[0-5][0-9]" placeholder="04:30">
+              <span class="form-helper">Depot horizon is 18:00 to 06:00</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="vPriority">Fleet Priority</label>
+              <select id="vPriority" class="form-select">
+                <option value="High">High Priority</option>
+                <option value="Normal" selected>Normal Priority</option>
+                <option value="Low">Low Priority</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="VoltWiseApp.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 2: ADD / EDIT CHARGER                                        -->
+  <!-- ================================================================== -->
+  <div class="modal-overlay" id="chargerModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="chargerModalTitle">Add Charger Station / Bay</div>
+        <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.closeModal()">✕</button>
+      </div>
+      <form id="chargerForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="chId">Charger ID</label>
+              <input type="text" id="chId" class="form-input" required placeholder="e.g. CH-01">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="chName">Bay Name / Location</label>
+              <input type="text" id="chName" class="form-input" required placeholder="e.g. Bay E (Fast)">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="chPower">Rated Power (kW)</label>
+              <input type="number" id="chPower" class="form-input" required min="3" max="150" step="1" value="22.0">
+            </div>
+            <div class="form-group" style="justify-content: center;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 1rem;">
+                <input type="checkbox" id="chAvailable" checked>
+                <span class="form-label" style="margin: 0;">Online and Available</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="VoltWiseApp.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Charger</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 3: SMART CHARGING DECISION INSPECTOR                         -->
+  <!-- ================================================================== -->
+  <div class="modal-overlay" id="decisionModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.3rem;">💡</span>
+          <div>
+            <div class="modal-title" id="decisionModalTitle">Smart Decision Trail</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Algorithmic rationale for assigned charging intervals and bay power</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="VoltWiseApp.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Optimization Rationale</div>
+            <div id="decisionHeadline" style="font-size: 1.05rem; font-weight: 800; color: #0284c7; margin-top: 0.25rem;">--</div>
+          </div>
+          <div id="decisionRiskBadge" class="risk-chip risk-safe">🟢 Safe Deadline</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-title" style="font-size: 0.85rem;">⏳ Urgency & Slack Analysis</div>
+            <p id="decisionUrgency" style="font-size: 0.88rem; color: var(--text-main); line-height: 1.5; margin: 0;">--</p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-title" style="font-size: 0.85rem;">💰 Time-of-Day Tariff Economics</div>
+            <p id="decisionEconomics" style="font-size: 0.88rem; color: var(--text-main); line-height: 1.5; margin: 0;">--</p>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-title" style="font-size: 0.85rem;">🔌 Hardware Bay & Site Cap</div>
+            <p id="decisionHardware" style="font-size: 0.88rem; color: var(--text-main); line-height: 1.5; margin: 0;">--</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-title" style="font-size: 0.85rem;">📅 Allocated 15-Minute Charging Slots</div>
+          <div id="decisionSlotsList" style="display: flex; flex-wrap: wrap; gap: 0.35rem; max-height: 180px; overflow-y: auto; padding: 0.5rem 0;">
+            <!-- Rendered by app.js openDecisionModal() -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="VoltWiseApp.closeModal()">Close Decision Trail</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Heatmap Tooltip Popover -->
+  <div class="heatmap-tooltip" id="heatmapTooltip"></div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Scripts -->
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
